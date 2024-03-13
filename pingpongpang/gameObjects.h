@@ -9,3 +9,7 @@ struct Ball {
 	int radius;
 	int velocityX, velocityY; //Speed and direciton of the ball.
 };
+struct prizeBox {
+	int x, y;
+	int width, height;
+};

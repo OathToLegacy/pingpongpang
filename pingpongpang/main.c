@@ -1,5 +1,10 @@
 #include <stdio.h>
 #include <SDL.h>
+#include <SDL_ttf.h>
+#include <ft2build.h>
+#include FT_FREETYPE_H;
+
+
 #include "gameObjects.h"
 
 //DEFINE RESOLUTION
@@ -19,14 +24,114 @@ void drawPaddle(struct Paddle paddle, SDL_Renderer* renderer){
 }
 
 //game loop
-void gameLoop() {}
+void gameLoop(SDL_Renderer* renderer) {
+    //Use free type to draw text
+    FT_Library ft;
+    if (FT_Init_FreeType(&ft)) {
+        fprintf(stderr, "Could not init FreeType Library\n");
+        return 1;
+    }
+    FT_Face face;
+    if (FT_New_Face(ft, "arial.ttf", 0, &face)) {
+        fprintf(stderr, "Could not open font\n");
+        return 1;
+    }
+    FT_Set_Pixel_Sizes(face, 0, 48);
+
+    if (FT_Load_Char(face, 'X', FT_LOAD_RENDER)) {
+        fprintf(stderr, "Could not load character 'X'\n");
+        return 1;
+    }
+    SDL_Surface* surface = SDL_CreateRGBSurfaceFrom(
+        face->glyph->bitmap.buffer,
+        face->glyph->bitmap.width,
+        face->glyph->bitmap.rows,
+        8,
+        face->glyph->bitmap.pitch,
+        0x000000FF, 0x0000FF00, 0x00FF0000, 0xFF000000
+    );
+    SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
+    FT_Done_Face(face);
+    FT_Done_FreeType(ft);
+    FT_Set_Pixel_Sizes(face, 0, 48);
+    const char* text = "Hello, World!";
+    int x = 50;
+    int y = 50;
+
+    for (const char* p = text; *p; p++) {
+        if (FT_Load_Char(face, *p, FT_LOAD_RENDER)) {
+            fprintf(stderr, "Could not load character '%c'\n", *p);
+            continue;
+        }
+
+        SDL_Surface* surface = SDL_CreateRGBSurfaceFrom(
+            face->glyph->bitmap.buffer,
+            face->glyph->bitmap.width,
+            face->glyph->bitmap.rows,
+            8,
+            face->glyph->bitmap.pitch,
+            0x000000FF, 0x0000FF00, 0x00FF0000, 0xFF000000
+        );
+        SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
+
+        SDL_Rect dst = { x + face->glyph->bitmap_left, y - face->glyph->bitmap_top, face->glyph->bitmap.width, face->glyph->bitmap.rows };
+        SDL_RenderCopy(renderer, texture, NULL, &dst);
+
+        x += face->glyph->advance.x >> 6;
+    }
+    
+}
+
+//process input
+void processInput(struct Paddle* paddleLeft, struct Paddle* paddleRight, struct Ball* ball, SDL_Renderer* renderer) {
+    
+    SDL_Event event;
+    while (SDL_PollEvent(&event)) {
+        if (event.type == SDL_QUIT) {
+            
+            exit(0);
+        }
+        else if (event.type == SDL_KEYDOWN) {
+            switch (event.key.keysym.sym) {
+            case SDLK_w:
+                // Move the left paddle up
+                paddleLeft->y -= 10;
+                break;
+            case SDLK_s:
+                // Move the left paddle down
+                paddleLeft->y += 10;
+                break;
+            case SDLK_UP:
+                // Move the right paddle up
+                paddleRight->y -= 10;
+                break;
+            case SDLK_DOWN:
+                // Move the right paddle down
+                paddleRight->y += 10;
+                break;
+            case SDLK_r:
+                // Reset the the game
+                drawBall(*ball, renderer);
+                drawPaddle(*paddleLeft, renderer);
+                drawPaddle(*paddleRight, renderer);
+                // Add more case statements for other keys as needed
+            }
+        }
+    }
+    
+}
+
 
 int main(void){
+    if(TTF_Init() == -1) {
+		printf("TTF_Init: %s\n", TTF_GetError());
+		exit(EXIT_FAILURE);
+	}
     // Initialize SDL
     if (SDL_Init(SDL_INIT_VIDEO) != 0) {
         printf("SDL_Init Error: %s\n", SDL_GetError());
         return -1; // Failure
-        exit;
+        exit(EXIT_FAILURE);
     }
 
     // Create game window using SDL
@@ -35,7 +140,7 @@ int main(void){
         printf("SDL_CreateWindow Error: %s\n", SDL_GetError());
         SDL_Quit();
         return -2; // Failure
-        exit;
+        exit(EXIT_FAILURE);
     }
 
     // TODO: You'll also need to create a renderer here, which you'll use later to draw your game objects.
@@ -45,7 +150,7 @@ int main(void){
         printf("SDL_CreateRenderer Error: %s\n", SDL_GetError());
         SDL_Quit();
         return -3; // Failure
-        exit;
+        exit(EXIT_FAILURE);
     }
 
     //Draw color for filling the window:
@@ -72,7 +177,7 @@ int main(void){
     SDL_RenderPresent(renderer);
 
     
-
+    gameLoop(renderer);
     while (1){}
     return 1;
 }
