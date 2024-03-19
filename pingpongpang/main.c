@@ -1,9 +1,6 @@
 #include <stdio.h>
 #include <SDL.h>
-#include <SDL_ttf.h>
-#include <ft2build.h>
-#include FT_FREETYPE_H;
-
+#include <Windows.h> //Used for text displaying in SDL window
 
 #include "gameObjects.h"
 
@@ -23,62 +20,17 @@ void drawPaddle(struct Paddle paddle, SDL_Renderer* renderer){
 	SDL_RenderFillRect(renderer, &paddleRect);
 }
 
+//Draw text on the screen using windows GDI
+void drawText(char* text, int x, int y, SDL_Renderer* renderer){
+	HDC hdc = GetDC(NULL);
+	TextOut(hdc, x, y, text, strlen(text));
+	ReleaseDC(NULL, hdc);
+}
+
 //game loop
 void gameLoop(SDL_Renderer* renderer) {
-    //Use free type to draw text
-    FT_Library ft;
-    if (FT_Init_FreeType(&ft)) {
-        fprintf(stderr, "Could not init FreeType Library\n");
-        return 1;
-    }
-    FT_Face face;
-    if (FT_New_Face(ft, "arial.ttf", 0, &face)) {
-        fprintf(stderr, "Could not open font\n");
-        return 1;
-    }
-    FT_Set_Pixel_Sizes(face, 0, 48);
-
-    if (FT_Load_Char(face, 'X', FT_LOAD_RENDER)) {
-        fprintf(stderr, "Could not load character 'X'\n");
-        return 1;
-    }
-    SDL_Surface* surface = SDL_CreateRGBSurfaceFrom(
-        face->glyph->bitmap.buffer,
-        face->glyph->bitmap.width,
-        face->glyph->bitmap.rows,
-        8,
-        face->glyph->bitmap.pitch,
-        0x000000FF, 0x0000FF00, 0x00FF0000, 0xFF000000
-    );
-    SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
-    FT_Done_Face(face);
-    FT_Done_FreeType(ft);
-    FT_Set_Pixel_Sizes(face, 0, 48);
-    const char* text = "Hello, World!";
-    int x = 50;
-    int y = 50;
-
-    for (const char* p = text; *p; p++) {
-        if (FT_Load_Char(face, *p, FT_LOAD_RENDER)) {
-            fprintf(stderr, "Could not load character '%c'\n", *p);
-            continue;
-        }
-
-        SDL_Surface* surface = SDL_CreateRGBSurfaceFrom(
-            face->glyph->bitmap.buffer,
-            face->glyph->bitmap.width,
-            face->glyph->bitmap.rows,
-            8,
-            face->glyph->bitmap.pitch,
-            0x000000FF, 0x0000FF00, 0x00FF0000, 0xFF000000
-        );
-        SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
-
-        SDL_Rect dst = { x + face->glyph->bitmap_left, y - face->glyph->bitmap_top, face->glyph->bitmap.width, face->glyph->bitmap.rows };
-        SDL_RenderCopy(renderer, texture, NULL, &dst);
-
-        x += face->glyph->advance.x >> 6;
-    }
+    //Print main menu text
+    drawText("Welcome to Pong (With a twist!)\n press 'r' to begin the game", 100, 100, renderer);
     
 }
 
@@ -123,15 +75,11 @@ void processInput(struct Paddle* paddleLeft, struct Paddle* paddleRight, struct 
 
 
 int main(void){
-    if(TTF_Init() == -1) {
-		printf("TTF_Init: %s\n", TTF_GetError());
-		exit(EXIT_FAILURE);
-	}
     // Initialize SDL
     if (SDL_Init(SDL_INIT_VIDEO) != 0) {
         printf("SDL_Init Error: %s\n", SDL_GetError());
         return -1; // Failure
-        exit(EXIT_FAILURE);
+        exit(-1);
     }
 
     // Create game window using SDL
@@ -140,17 +88,17 @@ int main(void){
         printf("SDL_CreateWindow Error: %s\n", SDL_GetError());
         SDL_Quit();
         return -2; // Failure
-        exit(EXIT_FAILURE);
+        exit(-1);
     }
 
-    // TODO: You'll also need to create a renderer here, which you'll use later to draw your game objects.
+    // TODO: create a renderer here, which you'll use later to draw your game objects.
     SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
     if (renderer == NULL) {
         SDL_DestroyWindow(window);
         printf("SDL_CreateRenderer Error: %s\n", SDL_GetError());
         SDL_Quit();
         return -3; // Failure
-        exit(EXIT_FAILURE);
+        exit(-1);
     }
 
     //Draw color for filling the window:
